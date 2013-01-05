@@ -36,6 +36,7 @@ struct spaceship {
 	int boundx;
 	int boundy;
 	int score;
+	int level;
 };
 
 // Bullets

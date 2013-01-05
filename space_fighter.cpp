@@ -244,6 +244,7 @@ static void game_loop(void)
 
 				// Display score and lives
 				al_draw_textf(arial18, al_map_rgb(0, 255, 255), 30, 20, 0, "Score: %i", ship.score);
+				al_draw_textf(arial18, al_map_rgb(0, 255, 255), 180, 20, 0, "Level: %i", ship.level);
 				al_draw_textf(arial18, al_map_rgb(0, 255, 255), 30, 40, 0, "Lives: %i", ship.lives);
 			}
 			else
@@ -290,6 +291,7 @@ void init_ship(spaceship &ship)
 	ship.boundx = 6;
 	ship.boundy = 7;
 	ship.score = 0;
+	ship.level = 0;
 }
 void draw_ship(spaceship &ship)
 {
@@ -527,9 +529,11 @@ void check_score(spaceship &ship, comets comet[], life_comet &lComet)
 	if(ship.score >= score_level)
 	{
 		for(int i = 0; i < NUM_COMETS; i++)
+		{
 			comet[i].speed += 1;
 			lComet.speed += 1;
-
+			ship.level++;
+		}
 		score_level *= 2;
 	}
 }
