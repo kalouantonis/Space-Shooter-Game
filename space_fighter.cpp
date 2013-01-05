@@ -532,8 +532,8 @@ void check_score(spaceship &ship, comets comet[], life_comet &lComet)
 		{
 			comet[i].speed += 1;
 			lComet.speed += 1;
-			ship.level++;
 		}
+		ship.level++;
 		score_level *= 2;
 	}
 }
