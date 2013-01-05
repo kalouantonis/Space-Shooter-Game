@@ -530,7 +530,6 @@ void check_score(spaceship &ship, comets comet[], life_comet &lComet)
 		for(int i = 0; i < NUM_COMETS; i++)
 		{
 			comet[i].speed += 1;
-			lComet.speed += 1;
 		}
 		ship.level++;
 		score_level *= 2;
