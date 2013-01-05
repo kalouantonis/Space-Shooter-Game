@@ -290,7 +290,7 @@ void init_ship(spaceship &ship)
 	ship.boundx = 6;
 	ship.boundy = 7;
 	ship.score = 0;
-	ship.level = 0;
+	ship.level = 1;
 }
 void draw_ship(spaceship &ship)
 {
