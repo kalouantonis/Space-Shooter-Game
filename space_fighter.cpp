@@ -470,7 +470,7 @@ void init_lComet(life_comet &lComet)
 {
 	lComet.ID = LIFE;
 	lComet.live = false;
-	lComet.speed = 7;
+	lComet.speed = 5;
 	lComet.boundx = 18;
 	lComet.boundy = 18;
 }
