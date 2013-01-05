@@ -58,7 +58,14 @@ void start_lComet(life_comet &lComet);
 void update_lComet(life_comet &lComet);
 void collide_lComet(life_comet &lComet, bullets bullet[], spaceship &ship);
 
-void check_score(spaceship &ship, comets comet[], life_comet &lComet);
+void init_pComet(point_comet &pComet);
+void draw_pComet(point_comet &pComet);
+void start_pComet(point_comet &pComet);
+void update_pComet(point_comet &pComet);
+void collide_pComet_bullet(point_comet &pComet, bullets bullet[], spaceship &ship);
+void collide_pComet(point_comet &pComet, spaceship &ship);
+
+void check_score(spaceship &ship, comets comet[], point_comet &pComet);
 //****************************************
 
 static int init_allegro(void)
@@ -113,12 +120,14 @@ static void game_loop(void)
 	bullets bullet[NUM_BULLETS];
 	comets comet[NUM_COMETS];
 	life_comet lComet = { 0 };
+	point_comet pComet = { 0 };
 
 	// Object Initialization
 	init_ship(ship);
 	init_bullet(bullet);
 	init_comet(comet);
 	init_lComet(lComet);
+	init_pComet(pComet);
 
 	// Assign a font
 	ALLEGRO_FONT *arial18 = al_load_font("arial.ttf", 18, 0);
@@ -148,10 +157,12 @@ static void game_loop(void)
 				is_game_over = false;
 
 				// Re-initialize all objects
+				// Note: Might make goto call
 				init_ship(ship);
 				init_bullet(bullet);
 				init_comet(comet);
 				init_lComet(lComet);
+				init_pComet(pComet);
 			}
 			if(!is_game_over)
 			{
@@ -161,18 +172,22 @@ static void game_loop(void)
 				//Start comets
 				start_comet(comet);
 				start_lComet(lComet);
+				start_pComet(pComet);
 
 				//Update comets
 				update_comet(comet);
 				update_lComet(lComet);
+				update_pComet(pComet);
 
 				// Check for collisions
 				collide_bullet(bullet, comet, ship);
 				collide_comet(comet, ship);
 				collide_lComet(lComet, bullet, ship);
+				collide_pComet(pComet, ship);
+				collide_pComet_bullet(pComet, bullet, ship);
 
 				// Check score
-				check_score(ship, comet, lComet);
+				check_score(ship, comet, pComet);
 
 				if(ship.lives <= 0)
 					is_game_over = true;
@@ -240,6 +255,7 @@ static void game_loop(void)
 				draw_bullet(bullet);
 				draw_comet(comet);
 				draw_lComet(lComet);
+				draw_pComet(pComet);
 
 				// Display score and lives
 				al_draw_textf(arial18, al_map_rgb(0, 255, 255), 30, 20, 0, "Score: %i", ship.score);
@@ -481,7 +497,7 @@ void draw_lComet(life_comet &lComet)
 }
 void start_lComet(life_comet &lComet)
 {
-	if(rand() % 10000 == 0) // Once in every 10,000 cycles
+	if(rand() % 9000 == 0) // Once in every 9,000 cycles
 	{
 		lComet.live = true;
 		lComet.x = WIDTH;
@@ -520,10 +536,76 @@ void collide_lComet(life_comet &lComet, bullets bullet[], spaceship &ship)
 	}
 }
 
-
+// Point comet
+void init_pComet(point_comet &pComet)
+{
+	pComet.ID = ENEMY;
+	pComet.live = false;
+	pComet.speed = 5;
+	pComet.boundx = 18;
+	pComet.boundy = 18;
+}
+void draw_pComet(point_comet &pComet)
+{
+	if(pComet.live)
+		al_draw_filled_circle(pComet.x, pComet.y, 20, al_map_rgb(0, 0, 255));
+}
+void start_pComet(point_comet &pComet)
+{
+	if(rand() % 1750 == 0) // Once in every 1750 cycles
+	{
+		pComet.live = true;
+		pComet.x = WIDTH;
+		pComet.y = 30 + rand() % (HEIGHT - 60);
+	}
+}
+void update_pComet(point_comet &pComet)
+{
+	if(pComet.live)
+	{
+		pComet.x -= pComet.speed;
+		if(pComet.x < 0)
+			pComet.live = false;
+	}
+}
+void collide_pComet_bullet(point_comet &pComet, bullets bullet[], spaceship &ship)
+{
+	for(int i = 0; i < NUM_BULLETS; i++)
+	{
+		if(bullet[i].live)
+		{
+			if(pComet.live)
+			{
+				if((bullet[i].x > (pComet.x - pComet.boundx)) &&
+						(bullet[i].x < (pComet.x + pComet.boundx)) &&
+						(bullet[i].y > (pComet.y - pComet.boundy)) &&
+						(bullet[i].y < (pComet.y + pComet.boundy)))
+				{
+					bullet[i].live = false;
+					pComet.live = false;
+					ship.score += 500;
+				}
+			}
+		}
+	}
+}
+void collide_pComet(point_comet &pComet,  spaceship &ship)
+{
+	if(pComet.live)
+	{
+		if(((pComet.x - pComet.boundx) < (ship.x + ship.boundx)) &&
+				((pComet.x + pComet.boundx) > (ship.x - ship.boundx)) &&
+				((pComet.y - pComet.boundy) < (ship.y + ship.boundy)) &&
+				((pComet.y + pComet.boundy) > (ship.y - ship.boundy)))
+		{
+			ship.lives--;
+			pComet.live = false;
+		}
+	}
+}
 // Logic
 
-void check_score(spaceship &ship, comets comet[], life_comet &lComet)
+void check_score(spaceship &ship, comets comet[],  point_comet &pComet)
 {
 	if(ship.score >= score_level)
 	{
@@ -532,6 +614,7 @@ void check_score(spaceship &ship, comets comet[], life_comet &lComet)
 			comet[i].speed += 1;
 		}
 		ship.level += 1;
+		pComet.speed += 1;
 		score_level *= 2;
 	}
 }

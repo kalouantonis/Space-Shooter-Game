@@ -70,4 +70,15 @@ struct life_comet {
 	bool live;
 };
 
+// Point comet. Gives you extra points when you shoot it
+struct point_comet {
+	int ID;
+	int x;
+	int y;
+	int speed;
+	int boundx;
+	int boundy;
+	bool live;
+};
+
 #endif /* OBJECT_H_ */
