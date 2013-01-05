@@ -7,7 +7,7 @@ Requirements:
   
 Install Instructions:
 -> cd /directory/of/source
--> make main
+-> make all
   
 Developed by Antonis Kalou (kalouantonis@gmail.com), with the help 
 and guidance of Mike Geig.
