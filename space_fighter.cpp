@@ -2,7 +2,7 @@
  * space_fighter.cpp
  *
  *  Created on: Jan 3, 2013
- *      Author: slacker
+ *      Author: Antonis Kalou
  */
 
 #include <iostream>

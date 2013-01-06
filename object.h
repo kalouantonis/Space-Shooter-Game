@@ -2,7 +2,7 @@
  * object.h
  *
  *  Created on: Jan 5, 2013
- *      Author: slacker
+ *      Author: Antonis Kalou
  */
 
 #ifndef OBJECT_H_
