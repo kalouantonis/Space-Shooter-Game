@@ -6,11 +6,14 @@
  */
 
 #include <iostream>
+#include <list>
 #include<allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
 #include "object.h"
+
+using std::list;
 
 #define WIDTH 800
 #define HEIGHT 400
@@ -22,8 +25,8 @@ bool keys[6] = {false, false, false, false, false, false};
 int score_level = 5000; // The interval at which the difficulty increases
 bool is_game_over = false;
 
-const int NUM_BULLETS = 5; // Max number of bullets
-const int NUM_COMETS = 10; // Max number of comets
+int NUM_BULLETS = 5; // Max number of bullets
+int NUM_COMETS = 10; // Max number of comets
 
 ALLEGRO_EVENT_QUEUE* event_queue;
 ALLEGRO_TIMER* timer;
@@ -40,32 +43,32 @@ void move_ship_down(spaceship &ship);
 void move_ship_right(spaceship &ship);
 void move_ship_left(spaceship &ship);
 
-void init_bullet(bullets bullet[]);
-void draw_bullet(bullets bullet[]);
-void fire_bullet(bullets bullet[], spaceship &ship);
-void update_bullet(bullets bullet[]);
-void collide_bullet(bullets bullet[], comets comet[], spaceship &ship);
+void init_bullet(list<Bullet> &);
+void draw_bullet(const list<Bullet> &);
+void fire_bullet(list<Bullet> &, spaceship &ship);
+void update_bullet(list<Bullet> &);
+void collide_bullet(list<Bullet> &, list<Comet>&, spaceship &ship);
 
-void init_comet(comets comet[]);
-void draw_comet(comets comet[]);
-void start_comet(comets comet[]);
-void update_comet(comets comet[]);
-void collide_comet(comets comet[], spaceship &ship);
+void init_comet(list<Comet>&);
+void draw_comet(const list<Comet>&);
+void start_comet(list<Comet>&);
+void update_comet(list<Comet>&);
+void collide_comet(list<Comet>&, spaceship &ship);
 
 void init_lComet(life_comet &lComet);
 void draw_lComet(life_comet &lComet);
 void start_lComet(life_comet &lComet);
 void update_lComet(life_comet &lComet);
-void collide_lComet(life_comet &lComet, bullets bullet[], spaceship &ship);
+void collide_lComet(life_comet &lComet, list<Bullet> &, spaceship &ship);
 
 void init_pComet(point_comet &pComet);
 void draw_pComet(point_comet &pComet);
 void start_pComet(point_comet &pComet);
 void update_pComet(point_comet &pComet);
-void collide_pComet_bullet(point_comet &pComet, bullets bullet[], spaceship &ship);
+void collide_pComet_bullet(point_comet &pComet, list<Bullet> &, spaceship &ship);
 void collide_pComet(point_comet &pComet, spaceship &ship);
 
-void check_score(spaceship &ship, comets comet[], point_comet &pComet);
+void check_score(spaceship &ship, list<Comet> &comet , point_comet &pComet);
 //****************************************
 
 static int init_allegro(void)
@@ -117,15 +120,15 @@ static void game_loop(void)
 	bool done = false;
 	bool redraw = true;
 	spaceship ship = { 0 };
-	bullets bullet[NUM_BULLETS];
-	comets comet[NUM_COMETS];
+	list<Bullet> bullets;
+	list<Comet> comets;
 	life_comet lComet = { 0 };
 	point_comet pComet = { 0 };
 
 	// Object Initialization
 	init_ship(ship);
-	init_bullet(bullet);
-	init_comet(comet);
+	init_bullet(bullets);
+	init_comet(comets);
 	init_lComet(lComet);
 	init_pComet(pComet);
 
@@ -159,35 +162,35 @@ static void game_loop(void)
 				// Re-initialize all objects
 				// Note: Might make goto call
 				init_ship(ship);
-				init_bullet(bullet);
-				init_comet(comet);
+				init_bullet(bullets);
+				init_comet(comets);
 				init_lComet(lComet);
 				init_pComet(pComet);
 			}
 			if(!is_game_over)
 			{
 				// Update bullets
-				update_bullet(bullet);
+				update_bullet(bullets);
 
 				//Start comets
-				start_comet(comet);
+				start_comet(comets);
 				start_lComet(lComet);
 				start_pComet(pComet);
 
 				//Update comets
-				update_comet(comet);
+				update_comet(comets);
 				update_lComet(lComet);
 				update_pComet(pComet);
 
 				// Check for collisions
-				collide_bullet(bullet, comet, ship);
-				collide_comet(comet, ship);
-				collide_lComet(lComet, bullet, ship);
+				collide_bullet(bullets, comets, ship);
+				collide_comet(comets, ship);
+				collide_lComet(lComet, bullets, ship);
 				collide_pComet(pComet, ship);
-				collide_pComet_bullet(pComet, bullet, ship);
+				collide_pComet_bullet(pComet, bullets, ship);
 
 				// Check score
-				check_score(ship, comet, pComet);
+				check_score(ship, comets, pComet);
 
 				if(ship.lives <= 0)
 					is_game_over = true;
@@ -216,7 +219,7 @@ static void game_loop(void)
 					break;
 				case ALLEGRO_KEY_SPACE:
 					keys[SPACE] = true;
-					fire_bullet(bullet, ship); // Fire one every keypress
+					fire_bullet(bullets, ship); // Fire one every keypress
 					break;
 				case ALLEGRO_KEY_ENTER:
 					keys[ENTER] = true;
@@ -252,8 +255,8 @@ static void game_loop(void)
 			{
 				//Object Drawing
 				draw_ship(ship);
-				draw_bullet(bullet);
-				draw_comet(comet);
+				draw_bullet(bullets);
+				draw_comet(comets);
 				draw_lComet(lComet);
 				draw_pComet(pComet);
 
@@ -346,70 +349,76 @@ void move_ship_left(spaceship &ship)
 
 // Bullet definitions
 
-void init_bullet(bullets bullet[])
+void init_bullet(list<Bullet> &bullets)
 {
-	for(int i = 0; i < NUM_BULLETS; i++)
+	for(int i=0; i < NUM_BULLETS; i++)
 	{
-		bullet[i].ID = BULLET;
-		bullet[i].speed = 10;
-		bullet[i].live = false;
+		struct Bullet single_bullet;
+		single_bullet.ID = BULLET;
+		single_bullet.speed = 10;
+		single_bullet.live = false;
+
+		bullets.push_back(single_bullet);
 	}
 }
-void draw_bullet(bullets bullet[])
+void draw_bullet(const list<Bullet> &bullets)
 {
-	for(int i = 0; i < NUM_BULLETS; i++)
+	for(list<Bullet>::const_iterator i = bullets.begin(); i != bullets.end(); i++)
 	{
-		if(bullet[i].live)
-			al_draw_filled_circle(bullet[i].x, bullet[i].y, 2, al_map_rgb(255, 255, 255));
+		if(i->live)
+			al_draw_filled_circle(i->x, i->y, 2, al_map_rgb(255, 255, 255));
 	}
 }
-void fire_bullet(bullets bullet[], spaceship &ship)
+void fire_bullet(list<Bullet> &bullets, spaceship &ship)
 {
-	for(int i = 0; i < NUM_BULLETS; i++)
+	for(list<Bullet>::iterator i = bullets.begin(); i != bullets.end(); i++)
 	{
-		if(!bullet[i].live)
+		if(!i->live)
 		{
-			bullet[i].x = ship.x + 17; // Up to me
-			bullet[i].y = ship.y;
-			bullet[i].live = true;
+			i->x = ship.x + 17; // Up to me
+			i->y = ship.y;
+			i->live = true;
 			break; // Dont want to fire all the bullets at the same time
 		}
 	}
 }
-void update_bullet(bullets bullet[])
+void update_bullet(list<Bullet> &bullets)
 {
-	for(int i = 0; i < NUM_BULLETS; i++)
+	for(list<Bullet>::iterator i = bullets.begin(); i != bullets.end(); i++)
 	{
-		if(bullet[i].live)
+		if(i->live)
 		{
-			bullet[i].x += bullet[i].speed;
-			if(bullet[i].x > WIDTH)
-				bullet[i].live = false;
+			i->x += i->speed;
+			if(i->x > WIDTH)
+				i->live = false;
 		}
 	}
 }
-void collide_bullet(bullets bullet[], comets comet[], spaceship &ship)
+void collide_bullet(list<Bullet> &bullets, list<Comet> &comets, spaceship &ship)
 {
-	for(int i = 0; i < NUM_BULLETS; i++)
+	// Change comets to iter
+	for(list<Bullet>::iterator bullet_iter = bullets.begin();
+			bullet_iter != bullets.end(); bullet_iter++)
 	{
-		if(bullet[i].live)
+		if(bullet_iter->live)
 		{
-			for(int j = 0; j < NUM_COMETS; j++)
+			for(list<Comet>::iterator com_iter = comets.begin();
+					com_iter != comets.end(); com_iter++)
 			{
-				if(comet[j].live)
+				if(com_iter->live)
 				{
-					if((bullet[i].x > (comet[j].x - comet[j].boundx)) &&
-							(bullet[i].x < (comet[j].x + comet[j].boundx)) &&
-							(bullet[i].y > (comet[j].y - comet[j].boundy)) &&
-							(bullet[i].y < (comet[j].y + comet[j].boundy)))
+					if((bullet_iter->x > (com_iter->x - com_iter->boundx)) &&
+							(bullet_iter->x < (com_iter->x + com_iter->boundx)) &&
+							(bullet_iter->y > (com_iter->y - com_iter->boundy)) &&
+							(bullet_iter->y < (com_iter->y + com_iter->boundy)))
 					{
 						/* If all these conditions are true, we know that the bullet is between
 						 * the top and the bottom and the left and the right of the bounding box.
 						 *
 						 * comet[j].x - comet[j].boundx is the position of the far left of the
 						 * bounding box*/
-						bullet[i].live = false;
-						comet[j].live = false;
+						bullet_iter->live = false;
+						com_iter->live = false;
 						ship.score += 100;
 					}
 				}
@@ -420,62 +429,65 @@ void collide_bullet(bullets bullet[], comets comet[], spaceship &ship)
 
 // Comet definitions
 
-void init_comet(comets comet[])
+void init_comet(list<Comet> &comets)
 {
 	for(int i = 0; i < NUM_COMETS; i++)
 	{
-		comet[i].ID = ENEMY;
-		comet[i].live = false;
-		comet[i].speed = 5; // Up to me, might increase according to difficulty
-		comet[i].boundx = 18;
-		comet[i].boundy = 18;
+		struct Comet each_comet;
+		each_comet.ID = ENEMY;
+		each_comet.live = false;
+		each_comet.speed = 5; // Up to me, might increase according to difficulty
+		each_comet.boundx = 18;
+		each_comet.boundy = 18;
+
+		comets.push_back(each_comet);
 	}
 }
-void draw_comet(comets comet[])
+void draw_comet(const list<Comet> &comets)
 {
-	for(int i = 0; i < NUM_COMETS; i++)
+	for(list<Comet>::const_iterator i = comets.begin(); i != comets.end(); i++)
 	{
-		if(comet[i].live)
-			al_draw_filled_circle(comet[i].x, comet[i].y, 20, al_map_rgb(0, 255, 0));
+		if(i->live)
+			al_draw_filled_circle(i->x, i->y, 20, al_map_rgb(0, 255, 0));
 	}
 }
-void start_comet(comets comet[])
+void start_comet(list<Comet> &comets)
 {
-	for(int i = 0; i < NUM_COMETS; i++)
+	for(list<Comet>::iterator i = comets.begin(); i != comets.end(); i++)
 	{
 		if(rand() % 500 == 0) // One out of 500 times. Random generation of comets
 		{
-			comet[i].live = true;
-			comet[i].x = WIDTH;
-			comet[i].y = 30 + rand() % (HEIGHT - 60); // Spawn comets at random location but not at top or bottom
+			i->live = true;
+			i->x = WIDTH;
+			i->y = 30 + rand() % (HEIGHT - 60); // Spawn comets at random location but not at top or bottom
 		}
 	}
 }
-void update_comet(comets comet[])
+void update_comet(list<Comet> &comets)
 {
-	for(int i = 0; i < NUM_COMETS; i++)
+	for(list<Comet>::iterator i = comets.begin(); i != comets.end(); i++)
 	{
-		if(comet[i].live)
+		if(i->live)
 		{
-			comet[i].x -= comet[i].speed;
-			if(comet[i].x < 0)
-				comet[i].live = false;
+			i->x -= i->speed;
+			if(i->x < 0)
+				i->live = false;
 		}
 	}
 }
-void collide_comet(comets comet[], spaceship &ship)
+void collide_comet(list<Comet> &comets, spaceship &ship)
 {
-	for(int i = 0; i < NUM_COMETS; i++)
+	for(list<Comet>::iterator i = comets.begin(); i != comets.end(); i++)
 	{
-		if(comet[i].live)
+		if(i->live)
 		{
-			if(((comet[i].x - comet[i].boundx) < (ship.x + ship.boundx)) &&
-					((comet[i].x + comet[i].boundx) > (ship.x - ship.boundx)) &&
-					((comet[i].y - comet[i].boundy) < (ship.y + ship.boundy)) &&
-					((comet[i].y + comet[i].boundy) > (ship.y - ship.boundy)))
+			if(((i->x - i->boundx) < (ship.x + ship.boundx)) &&
+					((i->x + i->boundx) > (ship.x - ship.boundx)) &&
+					((i->y - i->boundy) < (ship.y + ship.boundy)) &&
+					((i->y + i->boundy) > (ship.y - ship.boundy)))
 			{
 				ship.lives--;
-				comet[i].live = false;
+				i->live = false;
 			}
 		}
 	}
@@ -513,21 +525,22 @@ void update_lComet(life_comet &lComet)
 			lComet.live = false;
 	}
 }
-void collide_lComet(life_comet &lComet, bullets bullet[], spaceship &ship)
+void collide_lComet(life_comet &lComet, list<Bullet> &bullets, spaceship &ship)
 {
 	// Not like collide_comet, as it only counts bullet collisions
-	for(int i = 0; i < NUM_BULLETS; i++)
+	for(list<Bullet>::iterator bullet_iter = bullets.begin();
+			bullet_iter != bullets.end(); bullet_iter++)
 	{
-		if(bullet[i].live)
+		if(bullet_iter->live)
 		{
 			if(lComet.live)
 			{
-				if((bullet[i].x > (lComet.x - lComet.boundx)) &&
-						(bullet[i].x < (lComet.x + lComet.boundx)) &&
-						(bullet[i].y > (lComet.y - lComet.boundy)) &&
-						(bullet[i].y < (lComet.y + lComet.boundy)))
+				if((bullet_iter->x > (lComet.x - lComet.boundx)) &&
+						(bullet_iter->x < (lComet.x + lComet.boundx)) &&
+						(bullet_iter->y > (lComet.y - lComet.boundy)) &&
+						(bullet_iter->y < (lComet.y + lComet.boundy)))
 				{
-					bullet[i].live = false;
+					bullet_iter->live = false;
 					lComet.live = false;
 					ship.lives += 1;
 				}
@@ -568,20 +581,21 @@ void update_pComet(point_comet &pComet)
 			pComet.live = false;
 	}
 }
-void collide_pComet_bullet(point_comet &pComet, bullets bullet[], spaceship &ship)
+void collide_pComet_bullet(point_comet &pComet, list<Bullet> &bullets, spaceship &ship)
 {
-	for(int i = 0; i < NUM_BULLETS; i++)
+	for(list<Bullet>::iterator bullet_iter = bullets.begin();
+			bullet_iter != bullets.end(); bullet_iter++)
 	{
-		if(bullet[i].live)
+		if(bullet_iter->live)
 		{
 			if(pComet.live)
 			{
-				if((bullet[i].x > (pComet.x - pComet.boundx)) &&
-						(bullet[i].x < (pComet.x + pComet.boundx)) &&
-						(bullet[i].y > (pComet.y - pComet.boundy)) &&
-						(bullet[i].y < (pComet.y + pComet.boundy)))
+				if((bullet_iter->x > (pComet.x - pComet.boundx)) &&
+						(bullet_iter->x < (pComet.x + pComet.boundx)) &&
+						(bullet_iter->y > (pComet.y - pComet.boundy)) &&
+						(bullet_iter->y < (pComet.y + pComet.boundy)))
 				{
-					bullet[i].live = false;
+					bullet_iter->live = false;
 					pComet.live = false;
 					ship.score += 500;
 				}
@@ -605,16 +619,24 @@ void collide_pComet(point_comet &pComet,  spaceship &ship)
 }
 // Logic
 
-void check_score(spaceship &ship, comets comet[],  point_comet &pComet)
+int prev_level = 0;
+
+void check_score(spaceship &ship, list<Comet> &comets,  point_comet &pComet)
 {
 	if(ship.score >= score_level)
 	{
-		for(int i = 0; i < NUM_COMETS; i++)
+		for(list<Comet>::iterator i = comets.begin(); i != comets.end() ; i++)
 		{
-			comet[i].speed += 1;
+			i->speed += 1;
 		}
 		ship.level += 1;
 		pComet.speed += 1;
 		score_level *= 2;
+
+		if(ship.level == prev_level + 3) {
+			NUM_BULLETS++; // Every 2 levels after level 3 you get an extra bullet
+			NUM_COMETS++; // .. and an extra comet :)
+			prev_level += 2;
+		}
 	}
 }

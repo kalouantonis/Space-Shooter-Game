@@ -40,7 +40,7 @@ struct spaceship {
 };
 
 // Bullets
-struct bullets {
+struct Bullet {
 	int ID;
 	int x;
 	int y;
@@ -49,7 +49,7 @@ struct bullets {
 };
 
 // Comets
-struct comets {
+struct Comet {
 	int ID;
 	int x;
 	int y;
